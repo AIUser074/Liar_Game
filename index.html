@@ -280,7 +280,8 @@
             playerOrder: [],
             currentPlayerIndex: 0,
             statementsInfo: "",
-            opinionsInfo: ""
+            opinionsInfo: "",
+            finalVoteFailedOnce : false,
         }; 
 
         // 주제와 카테고리
@@ -442,6 +443,7 @@ const topics = {
             gameState.gameStage = "start";
             gameState.playerOrder = [];
             gameState.currentPlayerIndex = 0;
+            gameState.finalVoteFailedOnce = false;
         }
 
         // 한마디 작성 단계 시작
@@ -666,6 +668,7 @@ const topics = {
                 라이어가 누구라고 생각하는지 30자 이내로 간단히 설명해주세요. 판단의 근거는 다음을 따르세요. 
                 1. 참가자들의 힌트를 하나씩 보면서 주제어랑 관련이 있고, 맞는 말인지 판단하세요. 가장 관련이 적고 어긋난 사람이 라이어입니다.
                 2. 모두가 정확히 맞는 말을 했다면 힌트가 너무 포괄적인가? 그렇다면 라이어입니다.
+
                 두 문장 이내로 작성해주세요. 발언에는 "절대로 주제어가 포함되어서는 안됩니다." 답변은 '이름, 이유'순으로 답변할 것.절대 '${player.name}'을 지목해서는 안됩니다. 답변에 '${player.name}'가 절대 들어가면 안됨. 
                 `;
                 const aiOpinion = await getAIResponse(player, aiPrompt, 100);
@@ -860,8 +863,39 @@ function startVotePhase() {
             // 투표 결과 계산
             calculateVoteResults();
             
-            // 다음 단계로 진행
+
+            // ✅ 투표 UI 숨김
             voteSection.classList.add("hidden");
+
+            // ✅ 찬반투표 생략 로직
+            if (gameState.finalVoteFailedOnce) {
+                const votedPlayer = gameState.players.find(p => p.id === gameState.mostVotedPlayer);
+                const liarIsCaught = gameState.mostVotedPlayer === gameState.lierId;
+
+                // ✅ 투표 결과 팝업 표시
+                const votePopup = document.getElementById("vote-result-popup");
+                const voteText = document.getElementById("vote-result-text");
+                voteText.innerHTML = `
+                  🔁 재투표 결과<br>
+                  최다 득표자: ${votedPlayer.name}<br>
+                  득표 수: ${gameState.mostVotedCount}<br>
+                  찬반 없이 바로 결과 처리됩니다.
+                `;
+                votePopup.classList.remove("hidden");
+
+                setTimeout(() => {
+                    votePopup.classList.add("hidden");
+                    if (liarIsCaught) {
+                        showLiarFoundPopup();
+                    } else {
+                        endGame("citizens");
+                    }
+                }, 3000);
+
+                return; // ✅ 찬반투표 생략하고 종료
+            }
+
+            // ✅ 기본 루트 - 찬반 투표로 넘어감
             startFinalVotePhase();
         });
 
@@ -1074,8 +1108,9 @@ function evaluateFinalVote() {
                 endGame("citizens");
             }
         } else {
-            alert("과반수 찬성을 얻지 못했습니다. 토론으로 돌아갑니다.");
+            alert("과반수 찬성을 얻지 못했습니다. 토론으로 돌아갑니다. 다음 투표에는 찬반 투표를 진행하지 않습니다.");
             startDiscussionPhase();
+            gameState.finalVoteFailedOnce = true;
         }
 
         finalVoteResults = {};
