@@ -664,10 +664,10 @@ const topics = {
                 ${statementsInfo}
 
                 라이어가 누구라고 생각하는지 30자 이내로 간단히 설명해주세요. 판단의 근거는 다음을 따르세요. 
-                1. 힌트가 주제어랑 맞는 말인가? 아니라면 라이어
-                2. 모두가 맞는 말을 했다면 힌트가 너무 포괄적인가? 그렇다면 라이어
+                1. 참가자들의 힌트를 하나씩 보면서 주제어랑 관련이 있고, 맞는 말인지 판단하세요. 가장 관련이 없고 어긋난 사람이 라이어입니다.
+                2. 모두가 정확히 맞는 말을 했다면 힌트가 너무 포괄적인가? 그렇다면 라이어입니다.
                 3. 모두가 너무나 그럴듯 한 힌트를 말했다면, 발언의 순서로 미루어보아, 아래 쪽일수록 라이어일 확률이 높다.
-                절대 '${player.name}'을 의심해서는 안됩니다. 두 문장 이내로 작성해주세요. 발언에는 절대로 주제어가 포함되어서는 안됩니다.
+                두 문장 이내로 작성해주세요. 발언에는 "절대로 주제어가 포함되어서는 안됩니다." 답변은 '이름, 이유'순으로 답변할 것.절대 '${player.name}'을 지목해서는 안됩니다. 답변에 '${player.name}'가 절대 들어가면 안됨. 
                 `;
                 const aiOpinion = await getAIResponse(player, aiPrompt, 100);
                 
@@ -689,7 +689,7 @@ const topics = {
             
             if (opinion === "") {
                 alert("의견을 입력해주세요.");
-                return;
+                return; 
             }
             
             // 의견 저장 및 UI 업데이트
@@ -737,10 +737,12 @@ function startVotePhase() {
     // AI 먼저 투표 진행
     processAIVotes();
 
-    // ✅ 3초 후에 투표창 보여주기
+    // ✅ 4초 후에 투표창 보여주기
+    document.getElementById("ai-vote-wait-popup").classList.remove("hidden");
     setTimeout(() => {
+        document.getElementById("ai-vote-wait-popup").classList.add("hidden");
         voteSection.classList.remove("hidden");
-
+    
         // 투표 옵션 생성은 여기서!
         gameState.players.forEach(player => {
             const voteOption = document.createElement("div");
@@ -757,7 +759,7 @@ function startVotePhase() {
             voteOptions.appendChild(voteOption);
         });
 
-    }, 5000); // ← 여기서 시간 조절 가능 (ms 단위, 3000 = 3초)
+    }, 4000); 
 }
       
       function renderVoteOptions() {
@@ -816,7 +818,7 @@ function startVotePhase() {
         토론 의견:
         ${opinionsInfo}
 
-        누가 라이어인지 분석하고, 라이어라고 생각되는 플레이어 번호 하나만 답변해주세요. 자신은 투표할 수 없습니다. 0은 김춘봉, 1은 제임스, 2는 마이클, 3은 엘리스, 4는 유나입니다. 숫자만 답변해주세요.`;
+        누가 라이어인지 분석하고, 라이어라고 생각되는 플레이어 번호 하나만 답변해주세요. 자신'${aiPlayer.name}'은 투표할 수 없습니다. 0은 김춘봉, 1은 제임스, 2는 마이클, 3은 엘리스, 4는 유나입니다. 숫자만 답변해주세요.`;
 
                 // API 호출
                 const aiResponse = await getAIResponse(aiPlayer, aiPrompt, 5);
@@ -998,10 +1000,11 @@ async function processAIFinalVotes() {
         - ${votedTarget.name}가 시민 같다고 생각되면 "아니오"
         - 당신이 라이어이고 본인이 지목되었다면 "아니오"
         - 당신이 라이어이고 다른 사람이 지목되었다면 "예"
+        - 투표 대상이 '${ai.name}'라면 반드시 "아니오"
 
         ✍️ 반드시 "예" 또는 "아니오"로만 응답하세요. (짧은 이유는 허용)` 
         :
-            `당신은 라이어이며, 주제어는 알 수 없습니다. 카테고리: '${gameState.category}'만 알고 있습니다. 만약 당신이 투표 대상이라면 무조건 아니오를 고르고 다른 참가자라면 무조건 예를 고르세요!!
+            `당신은 라이어이며, 주제어는 알 수 없습니다. 카테고리: '${gameState.category}'만 알고 있습니다. 만약 당신:'${ai.name}'이 투표 대상이라면 무조건 아니오를 고르고 다른 참가자라면 무조건 예를 고르세요!!
             반드시 "예" 또는 "아니오"로만 응답하세요. (짧은 이유는 허용)
             `}
 
