@@ -149,6 +149,31 @@
         </div>
         
         <div id="start-section" class="game-section">
+        
+            <div id="ranking-ui" style="text-align: center; margin-bottom: 20px;">
+              <p id="streak-display"><strong>현재 연승: 0</strong></p>
+              <button id="submit-ranking">🏆 랭킹 등록하기</button>
+              <button id="view-ranking">📋 랭킹 확인하기</button>
+            </div>
+            <!-- 랭킹 결과 팝업 -->
+            <div id="ranking-popup" class="hidden" style="
+              position: fixed;
+              top: 20%;
+              left: 50%;
+              transform: translate(-50%, 0);
+              background-color: white;
+              border: 2px solid #5c6bc0;
+              border-radius: 10px;
+              padding: 20px;
+              width: 90%;
+              max-width: 400px;
+              box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+              z-index: 9999;
+            ">
+              <h3>🏆 전체 랭킹</h3>
+              <ul id="ranking-list" style="padding-left: 20px; list-style: decimal;"></ul>
+              <button onclick="document.getElementById('ranking-popup').classList.add('hidden')">닫기</button>
+            </div>
             <h2>게임 시작</h2>
             <button id="start-game">게임 시작하기</button>
         </div>
@@ -257,7 +282,101 @@
     </div>
 
     <script>
-        // 게임 상태 관리
+        // 연승 관련 변수
+        let winStreak = Number(localStorage.getItem("winStreak") || "0");
+
+        const submittedRankings = JSON.parse(localStorage.getItem("submittedRankings") || "[]");
+
+        // DOM 요소
+        const streakDisplay = document.getElementById("streak-display");
+        const submitRankingButton = document.getElementById("submit-ranking");
+        const viewRankingButton = document.getElementById("view-ranking");
+
+        // 연승 표시 및 버튼 제어
+        function updateStreakUI() {
+          streakDisplay.innerHTML = `<strong>현재 연승: ${winStreak}</strong>`;
+        }
+        updateStreakUI();
+
+        // ✅ 게임 승리 시 연승 증가
+        function incrementWinStreak() {
+          winStreak++;
+          localStorage.setItem("winStreak", winStreak.toString());
+          updateStreakUI();
+        }
+
+        // ❌ 게임 패배 시 연승 리셋
+        function resetWinStreak() {
+          winStreak = 0;
+          localStorage.setItem("winStreak", "0");
+          updateStreakUI();
+        }
+
+        // ✅ 랭킹 등록
+        submitRankingButton.addEventListener("click", async () => {
+          if (winStreak < 3) {
+            alert("⚠️ 3연승 이상만 등록할 수 있습니다!");
+            return;
+          }
+
+          const name = prompt("닉네임을 입력해주세요:");
+          if (!name) return;
+
+          const key = `${name}-${winStreak}`;
+          if (submittedRankings.includes(key)) {
+            alert("⚠️ 이미 같은 연승으로 등록한 닉네임입니다!");
+            return;
+          }
+
+          if (localStorage.getItem("rankingSubmitted") === "true") {
+            alert("⚠️ 한 판 더 진행한 후에 다시 등록할 수 있습니다.");
+            return;
+          }
+
+          try {
+            const res = await fetch("https://0a2c9492-151c-47ae-b2e1-70857df57ab3-00-3lmd9s82jd35q.kirk.replit.dev/ranking", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name, winStreak })
+            });
+
+            if (res.ok) {
+              alert("🎉 랭킹 등록 완료!");
+              submittedRankings.push(key);
+              localStorage.setItem("submittedRankings", JSON.stringify(submittedRankings));
+              localStorage.setItem("rankingSubmitted", "true"); // 등록 완료 상태 표시
+            } else {
+              alert("❌ 등록 실패: 서버 오류");
+            }
+          } catch (err) {
+            alert("❌ 등록 실패: 네트워크 오류", err);
+          }
+        });
+
+
+        viewRankingButton.addEventListener("click", async () => {
+          try {
+            const res = await fetch("https://0a2c9492-151c-47ae-b2e1-70857df57ab3-00-3lmd9s82jd35q.kirk.replit.dev/ranking");
+            const rankings = await res.json();
+
+            const list = document.getElementById("ranking-list");
+            list.innerHTML = rankings
+              .sort((a, b) => b.winStreak - a.winStreak)
+              .map((entry, i) => `<li>${entry.name}: ${entry.winStreak}연승</li>`)
+              .join("");
+
+            document.getElementById("ranking-popup").classList.remove("hidden");
+          } catch {
+            alert("❌ 랭킹 불러오기 실패");
+          }
+        });
+
+        // ✅ 게임 종료 시 예시: 결과 판별 후 연승 처리
+        function handleGameResult(didWin) {
+          if (didWin) incrementWinStreak();
+          else resetWinStreak();
+        }
+        // 게임 상태 관리 
         const gameState = {
             players: [
                 { id: 0, name: "김춘봉", isAI: false, tone: "" },
@@ -542,7 +661,7 @@ const topics = {
                 const aiResponse = await getAIResponse(player, aiPrompt, 70);
                 gameState.playerStatements[player.id] = aiResponse;
                 document.getElementById(`statement-${player.id}`).textContent = aiResponse;
-                console.log(`한마디 프롬프트: ${aiPrompt}`);
+                //console.log(`한마디 프롬프트: ${aiPrompt}`);
                 // 다음 사람 차례
                 gameState.currentPlayerIndex++;
                 setTimeout(() => {
@@ -840,7 +959,7 @@ function startVotePhase() {
                     gameState.currentVotes[i] = randomVote;
                 }
 
-                console.log(`${aiPlayer.name}의 투표: ${gameState.currentVotes[i]}`);
+                //console.log(`${aiPlayer.name}의 투표: ${gameState.currentVotes[i]}`);
             }
         }
 
@@ -1034,11 +1153,12 @@ async function processAIFinalVotes() {
         - 당신이 라이어이고 본인이 지목되었다면 "아니오"
         - 당신이 라이어이고 다른 사람이 지목되었다면 "예"
         - 투표 대상이 '${ai.name}'라면 반드시 "아니오"
-
-        ✍️ 반드시 "예" 또는 "아니오"로만 응답하세요. (짧은 이유는 허용)` 
+        - 대상이 ${votedTarget.name}라면 웬만하면 "예"
+ 
+        ✍️ 반드시 이유와 함께 "예" 또는 "아니오"로만 응답하세요. (짧은 이유는 허용)` 
         :
             `당신은 라이어이며, 주제어는 알 수 없습니다. 카테고리: '${gameState.category}'만 알고 있습니다. 만약 당신:'${ai.name}'이 투표 대상이라면 무조건 아니오를 고르고 다른 참가자라면 무조건 예를 고르세요!!
-            반드시 "예" 또는 "아니오"로만 응답하세요. (짧은 이유는 허용)
+            반드시 이유와 함께 "예" 또는 "아니오"로만 응답하세요. (짧은 이유는 허용)
             `}
 
 
@@ -1049,8 +1169,8 @@ async function processAIFinalVotes() {
         finalVoteResults[i] = vote;
         // 약간의 딜레이 주기
         await new Promise(resolve => setTimeout(resolve, 500));
-        console.log(`프롬프트: ${prompt}`);
-        console.log(`대답: ${reply}`);
+        //console.log(`프롬프트: ${prompt}`);
+        //console.log(`대답: ${reply}`);
     }
 
     // ✅ 팝업 닫기
@@ -1181,7 +1301,7 @@ submitGuess.addEventListener("click", function() {
 function endGame(winner, guess) {
     gameState.gameStage = "result";
     resultSection.classList.remove("hidden");
-
+		localStorage.setItem("rankingSubmitted", "false");
     const liar = gameState.players.find(p => p.id === gameState.lierId);
     const liarName = liar.name;
     const playerIsLiar = gameState.lierId === 0;
@@ -1196,14 +1316,17 @@ function endGame(winner, guess) {
         if (liarWasCaught) {
             if (liarGuessedCorrectly) {
                 resultText = `🟢 당신은 라이어였고 정체가 들통났지만,\n정확히 주제어를 맞춰 **승리**했습니다!`;
+                handleGameResult(true);
                 resultClass = "win";
             } else {
                 resultText = `🔴 당신은 라이어였고 정체가 들통났고,\n주제어도 맞추지 못했습니다. **패배**입니다.`;
+                handleGameResult(false);
                 resultClass = "lose";
             }
         } else {
             // 들통 안 남 = 시민들이 못 맞춤
             resultText = `🟢 당신은 라이어였고 시민들은 당신을 의심하지 않았습니다!\n\n**정체를 숨기고 성공적으로 승리했습니다!**`;
+            handleGameResult(true);
             resultClass = "win";
         }
     }
@@ -1213,14 +1336,17 @@ function endGame(winner, guess) {
         if (liarWasCaught) {
             if (liarGuessedCorrectly) {
                 resultText = `🔴 시민들은 라이어 ${liarName}의 정체를 밝혀냈지만,\n그가 주제어를 맞춰 **라이어의 승리**로 끝났습니다.`;
+                handleGameResult(false);
                 resultClass = "lose";
             } else {
                 resultText = `🟢 시민들은 라이어 ${liarName}의 정체를 밝혀냈고,\n그는 주제어를 맞추지 못했습니다.\n\n**시민의 승리입니다!**`;
+                handleGameResult(true);
                 resultClass = "win";
             }
         } else {
             // 시민들이 라이어를 못 맞춤
             resultText = `🔴 시민들은 라이어를 맞추지 못했습니다.\n\n${liarName}이(가) 정체를 숨기고 **승리**했습니다.`;
+            handleGameResult(false);
             resultClass = "lose";
         }
     }
