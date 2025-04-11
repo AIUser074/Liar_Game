@@ -334,7 +334,7 @@
           }
 
           try {
-            const res = await fetch("https://0a2c9492-151c-47ae-b2e1-70857df57ab3-00-3lmd9s82jd35q.kirk.replit.dev/ranking", {
+            const res = await fetch("https://liar-game-backend.onrender.com/ranking", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ name, winStreak })
@@ -356,7 +356,7 @@
 
         viewRankingButton.addEventListener("click", async () => {
           try {
-            const res = await fetch("https://0a2c9492-151c-47ae-b2e1-70857df57ab3-00-3lmd9s82jd35q.kirk.replit.dev/ranking");
+            const res = await fetch("https://liar-game-backend.onrender.com/ranking");
             const rankings = await res.json();
 
             const list = document.getElementById("ranking-list");
@@ -1420,7 +1420,7 @@ playAgain.addEventListener("click", function () {
 // ChatGPT API 연동 함수 (실제 구현)
 async function getAIResponseWithAPI(aiPlayer, prompt, maxLength) {
     try {
-        const response = await fetch('https://0a2c9492-151c-47ae-b2e1-70857df57ab3-00-3lmd9s82jd35q.kirk.replit.dev/chat', {
+        const response = await fetch('https://liar-game-backend.onrender.com/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
