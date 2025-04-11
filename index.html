@@ -826,7 +826,7 @@ function startVotePhase() {
                 const votedId = parseInt(aiResponse.match(/\d+/)?.[0]);
 
                 // 유효한 투표인지 확인 (자신이 아니고, 0-3 사이)
-                if (!isNaN(votedId) && votedId >= 0 && votedId <= 3 && votedId !== i) {
+                if (!isNaN(votedId) && votedId >= 0 && votedId <= 4 && votedId !== i) {
                     gameState.currentVotes[i] = votedId;
                 } else {
                     // 유효하지 않은 응답인 경우 랜덤 투표 (자신 제외)
