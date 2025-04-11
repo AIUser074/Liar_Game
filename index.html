@@ -826,7 +826,13 @@ const topics = {
                 startVotePhase();
             }, 1000);
         });
-
+        
+    function waitForAIVotesOrTimeout() {
+      return Promise.race([
+        processAIVotes(),          // AI 투표 완료까지 대기
+        new Promise(resolve => setTimeout(resolve, 7000)) // 7초 후에도 계속 진행
+      ]);
+    }
         // 투표 단계 시작
 function startVotePhase() {
     gameState.gameStage = "vote";
@@ -855,32 +861,30 @@ function startVotePhase() {
     voteSection.insertBefore(summaryDiv, voteOptions);
     voteOptions.innerHTML = "";
 
-    // AI 먼저 투표 진행
-    processAIVotes();
 
-    // ✅ 4초 후에 투표창 보여주기
+    // 실행 코드
     document.getElementById("ai-vote-wait-popup").classList.remove("hidden");
-    setTimeout(() => {
-        document.getElementById("ai-vote-wait-popup").classList.add("hidden");
+
+    waitForAIVotesOrTimeout().then(() => {
+      document.getElementById("ai-vote-wait-popup").classList.add("hidden");
+
         voteSection.classList.remove("hidden");
     
-        // 투표 옵션 생성은 여기서!
+        // 투표 옵션 생성
         gameState.players.forEach(player => {
-            const voteOption = document.createElement("div");
-            voteOption.className = "vote-player";
-            voteOption.id = `vote-option-${player.id}`;
-            voteOption.innerHTML = `<p>${player.name}</p>`;
-            voteOption.addEventListener("click", function () {
-                document.querySelectorAll(".vote-player").forEach(el => {
-                    el.classList.remove("selected");
-                });
-                this.classList.add("selected");
-                submitVote.classList.remove("disabled");
-            });
-            voteOptions.appendChild(voteOption);
+          const voteOption = document.createElement("div");
+          voteOption.className = "vote-player";
+          voteOption.id = `vote-option-${player.id}`;
+          voteOption.innerHTML = `<p>${player.name}</p>`;
+          voteOption.addEventListener("click", function () {
+            document.querySelectorAll(".vote-player").forEach(el => el.classList.remove("selected"));
+            this.classList.add("selected");
+            submitVote.classList.remove("disabled");
+          });
+          voteOptions.appendChild(voteOption);
         });
+      });
 
-    }, 4000); 
 }
       
       function renderVoteOptions() {
@@ -959,7 +963,7 @@ function startVotePhase() {
                     gameState.currentVotes[i] = randomVote;
                 }
 
-                //console.log(`${aiPlayer.name}의 투표: ${gameState.currentVotes[i]}`);
+                console.log(`${aiPlayer.name}의 투표: ${gameState.currentVotes[i]}`);
             }
         }
 
@@ -1158,7 +1162,7 @@ async function processAIFinalVotes() {
         ✍️ 반드시 이유와 함께 "예" 또는 "아니오"로만 응답하세요. (짧은 이유는 허용)` 
         :
             `당신은 라이어이며, 주제어는 알 수 없습니다. 카테고리: '${gameState.category}'만 알고 있습니다. 만약 당신:'${ai.name}'이 투표 대상이라면 무조건 아니오를 고르고 다른 참가자라면 무조건 예를 고르세요!!
-            반드시 이유와 함께 "예" 또는 "아니오"로만 응답하세요. (짧은 이유는 허용)
+            반드시 "예" 또는 "아니오"로만 응답하세요. 
             `}
 
 
@@ -1168,7 +1172,7 @@ async function processAIFinalVotes() {
         const vote = reply.includes("예") ? true : false;
         finalVoteResults[i] = vote;
         // 약간의 딜레이 주기
-        await new Promise(resolve => setTimeout(resolve, 500));
+        //await new Promise(resolve => setTimeout(resolve, 500));
         //console.log(`프롬프트: ${prompt}`);
         //console.log(`대답: ${reply}`);
     }
